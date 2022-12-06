@@ -55,6 +55,7 @@
 
 
   button.addEventListener('click', ()=>{
+    
     demuxDecodeWorker.postMessage({type: 'initialize', 
                                   buffer: buffer},);
   })
