@@ -1,0 +1,23 @@
+<body>
+    <head>
+        <meta http-equiv="origin-trial" content="AheTb7dTZtgoY8Fcsznx+0xlpDjy/teBncwVq9xG4xIf9qPWcZTOakvTzk/v7BtAeoL9xu7O87L57Lq7RhasZwgAAABeeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwIiwiZmVhdHVyZSI6IlVucmVzdHJpY3RlZFNoYXJlZEFycmF5QnVmZmVyIiwiZXhwaXJ5IjoxNjg4MDgzMTk5fQ==">
+      </head>
+    <video id="player" controls></video>
+    <input type="file" id="uploader">
+    <script src="ffmpeg.min.js"></script>
+    <script>
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      const ffmpeg = createFFmpeg({ log: true });
+      const transcode = async ({ target: { files } }) => {
+        const { name } = files[0];
+        await ffmpeg.load();
+        ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
+        await ffmpeg.run('-i', name,  'output.mp4');
+        const data = ffmpeg.FS('readFile', 'output.mp4');
+        const video = document.getElementById('player');
+        video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+      }
+      document
+        .getElementById('uploader').addEventListener('change', transcode);
+    </script>
+  </body>

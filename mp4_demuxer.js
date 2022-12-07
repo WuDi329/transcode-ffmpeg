@@ -36,7 +36,7 @@ export class MP4PullDemuxer extends PullDemuxerBase {
     this.source = new MP4Source(buffer);
     // console.log(streamType);
     console.log('mp4 demuxer: finish source')
-
+    this.rest_number = -1;
     this.readySamples = [];
     this.over = false;
     this._pending_read_resolver = null;
@@ -102,7 +102,7 @@ export class MP4PullDemuxer extends PullDemuxerBase {
           data: sample.data
         });
     }else
-      return null;
+      return this.rest_number;
   }
 
   _getAvcDescription(avccBox) {
@@ -163,6 +163,8 @@ export class MP4PullDemuxer extends PullDemuxerBase {
     const SAMPLE_BUFFER_TARGET_SIZE = 50;
 
     if(samples.length < 1000) {
+      this.rest_number = samples.length;
+      console.log('get rest_number'+ this.rest_number)
       this.over = true;
       console.log('已经取完全部samples了')
     }

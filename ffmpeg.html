@@ -55,13 +55,15 @@
         const data2 = ffmpeg.FS('readFile', 'rabbit-2.mp4');
 
         const transcoder0 = new Transcoder(data0);
-        // const transcoder1 = new Transcoder(data1);
-        // const transcoder2 = new Transcoder(data2);
+        const transcoder1 = new Transcoder(data1);
+        const transcoder2 = new Transcoder(data2);
+
+        // Promise.all([await transcoder0.start(), await ])
 
         const finalBuffer0 = await transcoder0.start();
-        // const finalBuffer1 = await transcoder1.start();
-        // const finalBuffer2 = await transcoder2.start();
-        console.log(finalBuffer0);
+        const finalBuffer1 = await transcoder1.start();
+        const finalBuffer2 = await transcoder2.start();
+        console.log(finalBuffer2);
 
         // 这里的写法是之前直接show在页面上，但是现在需要做转码
         // const video = document.getElementById('player');

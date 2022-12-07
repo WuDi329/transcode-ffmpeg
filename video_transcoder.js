@@ -205,8 +205,10 @@ class VideoTranscoder {
 
       // console.log('get chunk')
       // console.log(chunk);
-      if(!chunk){
+      if(typeof chunk === 'number'){
+        this.rest_number = chunk;
         this.over = true; 
+        this.decoder.flush();
       }
       else{ 
         chunkCount++;
