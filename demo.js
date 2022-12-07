@@ -56,8 +56,8 @@ export class WebmMuxer{
 
       async getEncoderConfig(decodeconfig, bitrate, framerate) {
 
-        this.vp9_encoder_constraints.width = decodeconfig.codedWidth;
-        this.vp9_encoder_constraints.height = decodeconfig.codedHeight;
+        this.vp9_encoder_constraints.width = decodeconfig.displayWidth;
+        this.vp9_encoder_constraints.height = decodeconfig.displayHeight;
   
   
         this.vp9_encoder_constraints.bitrate = bitrate;
