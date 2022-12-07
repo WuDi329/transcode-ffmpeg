@@ -205,6 +205,8 @@ class AudioTranscoder {
       // console.log(chunk);
       if(!chunk){
         this.overaudio = true; 
+        this.decoder.flush();
+        this.encoder.flush();
       }
       else{ 
         chunkCount++;
@@ -387,7 +389,7 @@ class AudioTranscoder {
       // console.log('audio framecount');
       // console.log(chunkCount);
       // console.log('audio chunkCount');
-      if(rechunkCount === 10576){
+      if(framecount === chunkCount){
         self.postMessage({type: 'exit'})
         console.log('current audio')
         console.log('post exit message to self...')

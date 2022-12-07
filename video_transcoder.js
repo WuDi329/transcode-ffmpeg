@@ -210,7 +210,7 @@ class VideoTranscoder {
       }
       else{ 
         chunkCount++;
-        // console.log("onsamples : video encodedframe number is "+ chunkCount)
+        console.log("onsamples : video encodedframe number is "+ chunkCount)
         this.decoder.decode(chunk);
       }
     }
@@ -235,7 +235,7 @@ async   bufferFrame(frame) {
     this.lock.lock();
     framecount++;
     this.lock.unlock();
-    // console.log('framecount is '+ framecount)
+    console.log('video framecount is '+ framecount)
     // console.log('after decode, videoframe timestamp is '+ frame.timestamp)
     // debugLog(`bufferFrame(${frame.timestamp})`);
     this.encoder.encode(frame);
@@ -264,7 +264,7 @@ async   bufferFrame(frame) {
     this.lock.lock();
     rechunkCount++;
     this.lock.unlock();
-    // console.log("rechunk count is"+ rechunkCount)
+    console.log("video rechunk count is"+ rechunkCount)
     // console.log('after encode, current rechunk timestamp is '+ chunk.timestamp)
     
     
@@ -279,7 +279,7 @@ async   bufferFrame(frame) {
       // console.log('video chunkCount');
 
       //这里以下先进行注释，主要是为了看总共有多少个frame
-      if(framecount === chunkCount-1){
+      if(framecount === chunkCount){
         console.log('current video')
         console.log(framecount)
         console.log(chunkCount)

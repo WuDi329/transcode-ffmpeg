@@ -24,34 +24,61 @@
 </body>
 
 <script src="EBML.js"></script>
+<script src="ffmpeg.min.js"></script>
 <script type="module">
-  import { MyAudioContext } from "./audiocontext.js";
-  import { WebMWriter } from "./webm-writer.js";
-  window.$ = document.querySelector.bind(document);
-  var demuxDecodeWorker;
+  //应该将控制转码的逻辑抽离出来，其他的都是split以及页面元素的互动
+  import {Transcoder} from "./Transcoder-controller.js";
 
-  var canvas = document.querySelector("canvas");
-  var offscreen = canvas.transferControlToOffscreen();
-  document.body.appendChild(canvas);
+  //  const finalBuffer = await transcoder.start();
+  //  return finalBuffer;
+  const { createFFmpeg, fetchFile } = FFmpeg;
+  const ffmpeg = createFFmpeg({ log: true });
 
-  var finalbuffer;
-  var frameCount = 0;
-  var startTime;
 
-  let writer = new WebMWriter();
-  let Button = $('button');
 
-  demuxDecodeWorker = new Worker("./demux_decode_worker.js");
-  const webm_worker = new Worker('./webm-worker.js');
+  const split = async ({ target: { files } }) => {
+        const { name } = files[0];
+        await ffmpeg.load();
+        // console.log('name')
+        // console.log(name);
+        ffmpeg.FS('chdir', '/');
+        ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
+        await ffmpeg.run('-i', name,  '-acodec', 'copy', '-vcodec', 'copy', 
+  '-f', 'segment', '-segment_time', '3', '-reset_timestamps', '1', '-map', '0:0', '-map', '0:1', 'rabbit-%d.mp4');
+        // const wd = ffmpeg.FS('cwd');
+        // if(!wd)
+        //   console.log(wd);
+        // else
+        //   console.log('null');
+        const data0 = ffmpeg.FS('readFile', 'rabbit-0.mp4');
+        const data1 = ffmpeg.FS('readFile', 'rabbit-1.mp4');
+        const data2 = ffmpeg.FS('readFile', 'rabbit-2.mp4');
 
-  var buffer;
+        const transcoder0 = new Transcoder(data0);
+        // const transcoder1 = new Transcoder(data1);
+        // const transcoder2 = new Transcoder(data2);
 
-  document.getElementById('fileInput').addEventListener('change', async function selectedFileChanged() {
-      console.log(this.files); // will contain information about the file that was selected.
-      const file = this.files[0];
-      console.log(file);
-      buffer = await file.arrayBuffer();
-    });
+        const finalBuffer0 = await transcoder0.start();
+        // const finalBuffer1 = await transcoder1.start();
+        // const finalBuffer2 = await transcoder2.start();
+        console.log(finalBuffer0);
+
+        // 这里的写法是之前直接show在页面上，但是现在需要做转码
+        // const video = document.getElementById('player');
+        // video.src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+
+        //思考： 如果要求任何一块数据到达任何一个client都能够进行转码，那么每个数据块都应当经历解复用和再次复用的过程
+      }
+  
+  document.getElementById('fileInput').addEventListener('change', split);
+      
+
+  // document.getElementById('fileInput').addEventListener('change', async function selectedFileChanged() {
+  //     console.log(this.files); // will contain information about the file that was selected.
+  //     const file = this.files[0];
+  //     console.log(file);
+  //     buffer = await file.arrayBuffer();
+  //   });
 
 
   button.addEventListener('click', ()=>{
@@ -89,184 +116,188 @@
 
 
 
-  let initResolver = null;
-  let initDone = new Promise(resolver => (initResolver = resolver));  
-  let myAudioContext = new MyAudioContext();
-  let triggerTime = 0;
-  let num_exit = 0;
+  // let initResolver = null;
+  // let initDone = new Promise(resolver => (initResolver = resolver));  
+  // let myAudioContext = new MyAudioContext();
+  // let triggerTime = 0;
+  // let num_exit = 0;
 
   //监听demuxDecodeWorker
-  demuxDecodeWorker.addEventListener('message',async  (e) => {
-    const msg = e.data;
-    switch (msg.type){
-    case 'initialize-done':
-      console.log('demo: initialize-done')
-      //这里使用无名式的初始化方法
-      await writer.start(null);
-      // console.log('writer open over')
-      // myAudioContext.initialize();
-    // audioController.initialize(e.data.sampleRate, e.data.channelCount,
-    //                     e.data.sharedArrayBuffer);
-      initResolver();
-      initResolver = null;
-      webm_worker.postMessage({
-        type: 'start',
-        webm_stats_interval: msg.webm_stats_interval,
-        webm_metadata: msg.webm_metadata
-      })
-      //转码时间得切换一下
-      // demuxDecodeWorker.postMessage({type: 'start-transcode'});
-      break;
-    case 'error':
-      onerror(msg.err);
-      break;
-    case 'exit':
-      console.log('index: get message exit from demux decoder');
-      //目前测试只是用一个视频轨道进行，如果要加入音频轨，需要将这里改为2
-      // if (++num_exit === 2)
-        webm_worker.postMessage({type: 'end'});
-      break;
-    case 'terminate':
-      console.log('index: terminate触发')
-      demuxDecodeWorker.terminate();
-      break;
-    default:
-      //这里默认触发video_data
-      // triggerTime++;
-      // console.log(triggerTime);
-      // console.log(msg.type)
-      webm_worker.postMessage(msg, [msg.data]);
-      break;
-  }
-});
-  await initDone;
+//   demuxDecodeWorker.addEventListener('message',async  (e) => {
+//     const msg = e.data;
+//     switch (msg.type){
+//     case 'initialize-done':
+//       console.log('demo: initialize-done')
+//       //这里使用无名式的初始化方法
+//       await writer.start(null);
+//       // console.log('writer open over')
+//       // myAudioContext.initialize();
+//     // audioController.initialize(e.data.sampleRate, e.data.channelCount,
+//     //                     e.data.sharedArrayBuffer);
+//       initResolver();
+//       initResolver = null;
+//       webm_worker.postMessage({
+//         type: 'start',
+//         webm_stats_interval: msg.webm_stats_interval,
+//         webm_metadata: msg.webm_metadata
+//       })
+//       //转码时间得切换一下
+//       // demuxDecodeWorker.postMessage({type: 'start-transcode'});
+//       break;
+//     case 'error':
+//       onerror(msg.err);
+//       break;
+//     case 'exit':
+//       console.log('index: get message exit from demux decoder');
+//       //目前测试只是用一个视频轨道进行，如果要加入音频轨，需要将这里改为2
+//       // if (++num_exit === 2)
+//         webm_worker.postMessage({type: 'end'});
+//       break;
+//     case 'terminate':
+//       console.log('index: terminate触发')
+//       demuxDecodeWorker.terminate();
+//       break;
+//     default:
+//       //这里默认触发video_data
+//       // triggerTime++;
+//       // console.log(triggerTime);
+//       // console.log(msg.type)
+//       webm_worker.postMessage(msg, [msg.data]);
+//       break;
+//   }
+// });
+//   await initDone;
 
-function onerror(e) {
-  console.error(e);
-}
+// function onerror(e) {
+//   console.error(e);
+// }
 
 
 
-  webm_worker.onerror = onerror;
-    webm_worker.onmessage = async ev => {
-        const msg = ev.data;
-        switch (msg.type) {
-          //原本的exit由外部事件触发，在这里应该是根据demux_decode_worker的事件触发
-            case 'exit':
-                //这个是最后一步执行的
-                console.log('demo: exit')
-                if (msg.code !== 0) {
-                    onerror(`muxer exited with status ${msg.code}`);
-                }
-                //本方法并不会等待 worker 去完成它剩余的操作；worker 将会被立刻停止
-                webm_worker.terminate();
-                console.log('demo: webm_worker terminated')
-                //这里似乎并没有执行
+  // webm_worker.onerror = onerror;
+  //   webm_worker.onmessage = async ev => {
+  //       const msg = ev.data;
+  //       switch (msg.type) {
+  //         //原本的exit由外部事件触发，在这里应该是根据demux_decode_worker的事件触发
+  //           case 'exit':
+  //               //这个是最后一步执行的
+  //               console.log('demo: exit')
+  //               if (msg.code !== 0) {
+  //                   onerror(`muxer exited with status ${msg.code}`);
+  //               }
+  //               //本方法并不会等待 worker 去完成它剩余的操作；worker 将会被立刻停止
+  //               webm_worker.terminate();
+  //               console.log('demo: webm_worker terminated')
+  //               //这里似乎并没有执行
             
 
-                //这里根据按钮是否被按下来决定是否要记录，现在改为需要记录，并且默认采用inmem记录的方式
-                // if (record_el.checked) {
-                    const r = await writer.finish();
-                    // console.log('finish: rrrrr')
-                    // console.log(r);
-                    console.log(`Finished: Duration ${writer.duration}ms, Size ${writer.size} bytes`);
-                    // if (inmem_el.checked) {
-                        const blob = new Blob(r, { type: 'video/webm' });
-                        finalbuffer = await blob.arrayBuffer();
-                        console.log('finalbuffer is ')
-                        console.log(finalbuffer)
+  //               //这里根据按钮是否被按下来决定是否要记录，现在改为需要记录，并且默认采用inmem记录的方式
+  //               // if (record_el.checked) {
+  //                   const r = await writer.finish();
+  //                   // console.log('finish: rrrrr')
+  //                   // console.log(r);
+  //                   console.log(`Finished: Duration ${writer.duration}ms, Size ${writer.size} bytes`);
+  //                   // if (inmem_el.checked) {
+  //                       const blob = new Blob(r, { type: 'video/webm' });
+  //                       finalbuffer = await blob.arrayBuffer();
+  //                       console.log('finalbuffer is ')
+  //                       console.log(finalbuffer)
+  //                       //当这一步被调用，finalbuffer返回给status。
+  //                       wait_for_reslut(this.finalBuffer);
+  //                       wait_for_reslut = null;
+  //                       break;
 
                         
-                        // const a = document.createElement('a');
-                        // const filename = 'video-transcode.webm';
-                        // a.textContent = filename;
-                        // a.href = URL.createObjectURL(blob);
-                        // a.download = filename;
-                        // //这里可能会有问题，因为要直接操作document
-                        // document.body.appendChild(a);
-                        // a.click();
-                        // document.body.removeChild(a);
-                    // } else {
-                    //     rec_info.innerText += `, Filename ${writer.name}, Cues at ${r ? 'start' : 'end'}`;
-                    // }
-                // }
+  //                       // const a = document.createElement('a');
+  //                       // const filename = 'video-transcode.webm';
+  //                       // a.textContent = filename;
+  //                       // a.href = URL.createObjectURL(blob);
+  //                       // a.download = filename;
+  //                       // //这里可能会有问题，因为要直接操作document
+  //                       // document.body.appendChild(a);
+  //                       // a.click();
+  //                       // document.body.removeChild(a);
+  //                   // } else {
+  //                   //     rec_info.innerText += `, Filename ${writer.name}, Cues at ${r ? 'start' : 'end'}`;
+  //                   // }
+  //               // }
 
-                //按钮全部不需要，因此注释
-                // start_el.disabled = false;
-                // record_el.disabled = false;
-                // pcm_el.disabled = !record_el.checked;
-                // inmem_el.disabled = !record_el.checked;
-                // demuxDecodeWorker.postMessage({type: 'terminate'});
-                break;
+  //               //按钮全部不需要，因此注释
+  //               // start_el.disabled = false;
+  //               // record_el.disabled = false;
+  //               // pcm_el.disabled = !record_el.checked;
+  //               // inmem_el.disabled = !record_el.checked;
+  //               // demuxDecodeWorker.postMessage({type: 'terminate'});
+  //               break;
 
-            case 'start-stream':
-                //第八步：主线程接受到webm_worker的start stream信号
-                console.log('demo: start stream')
-                //under start-stream ,main thread post message to video_worker&audio_worker
-                //第九步：主线程发送start信息给video_worker和audio_worker
-
-
-                //webm_muxer.js和我的目前一个显著区别在于：
-                //webm_muxer的decodeconfig和encodeconfig等是在主线程获得的，
-                //而我目前的东西都是在transcoder中获得的
-                //哪个更好还不确定？
-                demuxDecodeWorker.postMessage({type: 'start-transcode'})
-                // video_worker.postMessage({
-                //     type: 'start',
-                //     readable: video_readable,
-                //     key_frame_interval,
-                //     config: video_encoder_config
-                // }, [video_readable]);
-
-                // audio_worker.postMessage({
-                //     type: 'start',
-                //     audio: true,
-                //     readable: audio_readable,
-                //     config: {
-                //         //只有codec是audio才有可能有pcm的标志
-                //         codec: pcm_el.checked ? 'pcm' : 'opus',
-                //         bitrate: 128 * 1000,
-                //         sampleRate: audio_settings.sampleRate,
-                //         numberOfChannels: audio_settings.channelCount
-                //     }
-                // }, [audio_readable]);
-
-                // stop_el.disabled = false;
-
-                break;
-
-            case 'muxed-data':
-              //理论上来说，获得muxed-data时，就代表一个encodedchunkdata经过了decode-encode再mux的过程了
-                console.log('demo: muxed-data')
-                console.log('muxed-data')
-                console.log(msg.data)
-                //默认要记录，因此checked注释
-                // if (record_el.checked) {
-                await writer.write(msg.data);
-                console.log(`Recorded ${writer.size} bytes`);
-                // }
-                // queue.push(msg.data);
-                // if (!pcm_el.checked) {
-                //     remove_append();
-                // }
-                break;
-
-            case 'stats':
-                // console.log('demo: stats')
-                console.log(msg.data);
-                break;
-
-            case 'error':
-                console.log('demo: error')
-                onerror(msg.detail);
-                break;
-        }
-    };
+  //           case 'start-stream':
+  //               //第八步：主线程接受到webm_worker的start stream信号
+  //               console.log('demo: start stream')
+  //               //under start-stream ,main thread post message to video_worker&audio_worker
+  //               //第九步：主线程发送start信息给video_worker和audio_worker
 
 
-  function start(){
+  //               //webm_muxer.js和我的目前一个显著区别在于：
+  //               //webm_muxer的decodeconfig和encodeconfig等是在主线程获得的，
+  //               //而我目前的东西都是在transcoder中获得的
+  //               //哪个更好还不确定？
+  //               demuxDecodeWorker.postMessage({type: 'start-transcode'})
+  //               // video_worker.postMessage({
+  //               //     type: 'start',
+  //               //     readable: video_readable,
+  //               //     key_frame_interval,
+  //               //     config: video_encoder_config
+  //               // }, [video_readable]);
 
-  }
+  //               // audio_worker.postMessage({
+  //               //     type: 'start',
+  //               //     audio: true,
+  //               //     readable: audio_readable,
+  //               //     config: {
+  //               //         //只有codec是audio才有可能有pcm的标志
+  //               //         codec: pcm_el.checked ? 'pcm' : 'opus',
+  //               //         bitrate: 128 * 1000,
+  //               //         sampleRate: audio_settings.sampleRate,
+  //               //         numberOfChannels: audio_settings.channelCount
+  //               //     }
+  //               // }, [audio_readable]);
+
+  //               // stop_el.disabled = false;
+
+  //               break;
+
+  //           case 'muxed-data':
+  //             //理论上来说，获得muxed-data时，就代表一个encodedchunkdata经过了decode-encode再mux的过程了
+  //               console.log('demo: muxed-data')
+  //               console.log('muxed-data')
+  //               console.log(msg.data)
+  //               //默认要记录，因此checked注释
+  //               // if (record_el.checked) {
+  //               await writer.write(msg.data);
+  //               console.log(`Recorded ${writer.size} bytes`);
+  //               // }
+  //               // queue.push(msg.data);
+  //               // if (!pcm_el.checked) {
+  //               //     remove_append();
+  //               // }
+  //               break;
+
+  //           case 'stats':
+  //               // console.log('demo: stats')
+  //               console.log(msg.data);
+  //               break;
+
+  //           case 'error':
+  //               console.log('demo: error')
+  //               onerror(msg.detail);
+  //               break;
+  //       }
+  //   };
+
+
+  // function start(){
+
+  // }
 
 
   //以下全部是关于播放的部分，注释

@@ -142,7 +142,8 @@ self.addEventListener('message', async function(e) {
         type: 'initialize',
         // source: source
         buffer: msg.buffer
-      }, [msg.buffer])
+        })
+      // }, [msg.buffer])
       // let videoReady = videoTranscoder.initialize(videoDemuxer, e.data.canvas, muxer);
       // await videoReady;
       console.log("demux_worker: videoTranscoder initialize begin")
