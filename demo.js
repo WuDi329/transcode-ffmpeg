@@ -7,6 +7,17 @@ export class WebmMuxer{
 
     }
 
+    
+    vp9_encoder_constraints = {
+      // codec: 'av01.0.08M.08',
+      codec: 'vp09.00.10.08.01',
+      width: 720,
+      height: 1280,
+      bitrate: 1725000,
+      framerate: 30,
+      latencyMode: 'realtime'
+  }
+
     encoder_constraints = {
         // codec: 'av01.0.08M.08',
         codec: 'vp09.00.10.08.01',
@@ -43,28 +54,21 @@ export class WebmMuxer{
         console.log('muxer initialize finished')
       }
 
-    async getEncoderConfig() {
-        //判断当前流类型
-        //确实应该判断，但是这里先注释了
-        // if (this.streamType == AUDIO_STREAM_TYPE) {
-        //   return {
-        //     codec: this.audioTrack.codec,
-        //     sampleRate: this.audioTrack.audio.sample_rate,
-        //     numberOfChannels: this.audioTrack.audio.channel_count,
-        //     description: this.source.getAudioSpecificConfig()
-        //   };
-        // } else {
-        //     return await max_video_config({
-        //         ...encoder_constraints,
-        //         ratio: 1920 / 1080
-        //     }) || await max_video_config(encoder_constraints);
-        // }
+      async getEncoderConfig(decodeconfig, bitrate, framerate) {
 
-          console.log('in getencoder config');
-          console.log(this.encoder_constraints)
-            return await max_video_config({
-                ...this.encoder_constraints,
-                ratio: 640 / 360
-            }) || await max_video_config(this.encoder_constraints);
-      }
+        this.vp9_encoder_constraints.width = decodeconfig.codedWidth;
+        this.vp9_encoder_constraints.height = decodeconfig.codedHeight;
+  
+  
+        this.vp9_encoder_constraints.bitrate = bitrate;
+        this.vp9_encoder_constraints.framerate = framerate;
+  
+            console.log('in getencoder config');
+            console.log(this.vp9_encoder_constraints)
+              return await max_video_config({
+                  ...this.vp9_encoder_constraints,
+                  ratio: this.vp9_encoder_constraints.width / this.vp9_encoder_constraints.height
+              }) || await max_video_config(this.vp9_encoder_constraints);
+        }
+  
 }

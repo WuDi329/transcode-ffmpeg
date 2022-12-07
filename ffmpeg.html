@@ -34,6 +34,8 @@
   const { createFFmpeg, fetchFile } = FFmpeg;
   const ffmpeg = createFFmpeg({ log: true });
 
+  var finaldata;
+
 
 
   const split = async ({ target: { files } }) => {
@@ -41,7 +43,7 @@
         await ffmpeg.load();
         // console.log('name')
         // console.log(name);
-        ffmpeg.FS('chdir', '/');
+        // ffmpeg.FS('chdir', '/');
         ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
         await ffmpeg.run('-i', name,  '-acodec', 'copy', '-vcodec', 'copy', 
   '-f', 'segment', '-segment_time', '3', '-reset_timestamps', '1', '-map', '0:0', '-map', '0:1', 'rabbit-%d.mp4');
@@ -60,10 +62,21 @@
 
         // Promise.all([await transcoder0.start(), await ])
 
-        const finalBuffer0 = await transcoder0.start();
-        const finalBuffer1 = await transcoder1.start();
-        const finalBuffer2 = await transcoder2.start();
-        console.log(finalBuffer2);
+        const finalBlob0 = await transcoder0.start();
+        const finalBlob1 = await transcoder1.start();
+        const finalBlob2 = await transcoder2.start();
+
+        await ffmpeg.FS('writeFile', 'rabbit-0.webm', await fetchFile(finalBlob0));
+        await ffmpeg.FS('writeFile', 'rabbit-1.webm', await fetchFile(finalBlob1));
+        await ffmpeg.FS('writeFile', 'rabbit-2.webm', await fetchFile(finalBlob2));
+
+        ffmpeg.FS("writeFile", "filelist.txt", "file 'rabbit-0.webm'\nfile 'rabbit-1.webm'\nfile 'rabbit-2.webm'")
+
+        await ffmpeg.run('-f', 'concat',  '-i', 'filelist.txt', '-c' , 'copy', 'rabbit-output.mp4');
+        finaldata = ffmpeg.FS('readFile', 'rabbit-output.mp4');
+        console.log('get final data')
+        console.log(finaldata);
+        
 
         // 这里的写法是之前直接show在页面上，但是现在需要做转码
         // const video = document.getElementById('player');
@@ -109,7 +122,7 @@
 
     await stream.write({
       // @ts-ignore
-      data: finalbuffer,
+      data: finaldata,
       type: "write",
     });
     await stream.close();

@@ -60,6 +60,13 @@ export class MP4PullDemuxer extends PullDemuxerBase {
     // console.log('demuxer initialize finished')
   }
 
+  getOtherVideoConfig() {
+    return {
+      bitrate: Math.floor(this.videoTrack.bitrate),
+      framerate: (this.videoTrack.nb_samples/this.videoTrack.duration*this.videoTrack.timescale).toFixed(2)
+    }
+  }
+
   getDecoderConfig() {
     //判断当前流类型
     if (this.streamType == AUDIO_STREAM_TYPE) {

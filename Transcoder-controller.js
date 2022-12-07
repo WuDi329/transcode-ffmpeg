@@ -89,9 +89,11 @@ export class Transcoder{
               // 以下是对buffer改成流的做出的相应更改，这里先注释
               // this.finalStream = blob.stream();
               //       this.wait_for_reslut!(this.finalStream);
-              this.finalBuffer = await blob.arrayBuffer();
+
+              //由于 wasm 的文件系统无法读取binary，这里尝试改用blob
+              // this.finalBuffer = await blob.arrayBuffer();
               //当这一步被调用，finalbuffer返回给status。
-              this.wait_for_reslut(this.finalBuffer);
+              this.wait_for_reslut(blob);
               this.wait_for_reslut = null;
               break;
   
