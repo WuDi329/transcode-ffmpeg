@@ -46,12 +46,15 @@
         // ffmpeg.FS('chdir', '/');
         ffmpeg.FS('writeFile', name, await fetchFile(files[0]));
         await ffmpeg.run('-i', name,  '-acodec', 'copy', '-vcodec', 'copy', 
-  '-f', 'segment', '-segment_time', '3', '-reset_timestamps', '1', '-map', '0:0', '-map', '0:1', 'rabbit-%d.mp4');
+  '-f', 'segment', '-segment_time', '3', '-reset_timestamps', '1', '-map', '0:0', '-map', '0:1', '-segment_list', 'rabbit.list',  'rabbit-%d.mp4');
         // const wd = ffmpeg.FS('cwd');
         // if(!wd)
         //   console.log(wd);
         // else
         //   console.log('null');
+        const list = ffmpeg.FS("readFile", "rabbit.list",  { encoding: 'utf8' });
+        var filelist = list.split('\n')
+        console.log(filelist)
         const data0 = ffmpeg.FS('readFile', 'rabbit-0.mp4');
         const data1 = ffmpeg.FS('readFile', 'rabbit-1.mp4');
         const data2 = ffmpeg.FS('readFile', 'rabbit-2.mp4');
