@@ -38,6 +38,8 @@
 
 
 
+
+
   const split = async ({ target: { files } }) => {
         const { name } = files[0];
         await ffmpeg.load();
@@ -55,28 +57,52 @@
         const list = ffmpeg.FS("readFile", "rabbit.list",  { encoding: 'utf8' });
         var filelist = list.split('\n')
         console.log(filelist)
-        const data0 = ffmpeg.FS('readFile', 'rabbit-0.mp4');
-        const data1 = ffmpeg.FS('readFile', 'rabbit-1.mp4');
-        const data2 = ffmpeg.FS('readFile', 'rabbit-2.mp4');
+        var outputlist = list.replaceAll(".mp4", ".webm");
+        console.log('outputlist');
+        console.log(outputlist)
+        var split_outputlist = outputlist.split('\n');
+        console.log(split_outputlist);
+        // for(var i = 0; i < filelist.length - 1; i++){
+        //   outputlist[i] = filelist[i].replace(".mp4", "-output.webm");
+        //   console.log(outputlist[i]);
+        // }
 
-        const transcoder0 = new Transcoder(data0);
-        const transcoder1 = new Transcoder(data1);
-        const transcoder2 = new Transcoder(data2);
+
+        // 这里要自动化起来
+        // 串行处理
+
+        var blobarr = new Array();
+        for(var i = 0; i < filelist.length - 1; i++){
+          const data = ffmpeg.FS('readFile', filelist[i]);
+          const transcoder = new Transcoder(data);
+          blobarr[i] = await transcoder.start();
+          await ffmpeg.FS('writeFile', split_outputlist[i], await fetchFile(blobarr[i]));
+        }
+
 
         // Promise.all([await transcoder0.start(), await ])
+        //拼接filelist.txt
+        for(var i = 0;i < split_outputlist.length - 1; i++){
+          split_outputlist[i] = "file '" + split_outputlist[i] +"'";
+        }
+        var outfilelist = split_outputlist.join('\n');
 
-        const finalBlob0 = await transcoder0.start();
-        const finalBlob1 = await transcoder1.start();
-        const finalBlob2 = await transcoder2.start();
 
-        await ffmpeg.FS('writeFile', 'rabbit-0.webm', await fetchFile(finalBlob0));
-        await ffmpeg.FS('writeFile', 'rabbit-1.webm', await fetchFile(finalBlob1));
-        await ffmpeg.FS('writeFile', 'rabbit-2.webm', await fetchFile(finalBlob2));
+        
 
-        ffmpeg.FS("writeFile", "filelist.txt", "file 'rabbit-0.webm'\nfile 'rabbit-1.webm'\nfile 'rabbit-2.webm'")
+        // ffmpeg.FS("writeFile", "filelist.txt", "file 'rabbit-0.webm'\nfile 'rabbit-1.webm'\nfile 'rabbit-2.webm'")
+        console.log('finish transcode')
+        ffmpeg.FS("writeFile", "filelist.txt", outfilelist);
+        var checkoutputlist = ffmpeg.FS('readFile', 'filelist.txt',  { encoding: 'utf8' });
+        console.log('checkoutputlist')
+        console.log(checkoutputlist)
 
-        await ffmpeg.run('-f', 'concat',  '-i', 'filelist.txt', '-c' , 'copy', 'rabbit-output.mp4');
-        finaldata = ffmpeg.FS('readFile', 'rabbit-output.mp4');
+        var firstwebm = ffmpeg.FS('readFile', 'rabbit-2.webm');
+        console.log('firstwebm')
+        console.log(firstwebm)
+
+        await ffmpeg.run('-f', 'concat',  '-i', 'filelist.txt', '-c' , 'copy', 'rabbit-output.webm');
+        finaldata = ffmpeg.FS('readFile', 'rabbit-output.webm');
         console.log('get final data')
         console.log(finaldata);
         
